@@ -34,4 +34,4 @@ Caching user-specific responses under a shared key, or using broad purge operati
 
 ## Sources
 
-[Cloudflare CDN overview](https://cloud.google.com/cdn/docs/overview)
+[Cloudflare cache documentation](https://developers.cloudflare.com/cache/)
