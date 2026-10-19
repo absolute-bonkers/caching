@@ -1,0 +1,47 @@
+plugins { id 'java' }
+
+repositories { mavenCentral() }
+
+group = 'org.absolutebonkers.learning'
+version = '1.0.0'
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+def topicDirs = file('topics').listFiles().findAll { it.isDirectory() }.sort { it.name }
+sourceSets {
+    main.java.setSrcDirs(topicDirs.collect { new File(it, 'src/main/java') })
+    test.java.setSrcDirs(topicDirs.collect { new File(it, 'src/test/java') })
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test { useJUnitPlatform() }
+
+tasks.register('runExample', JavaExec) {
+    group = 'application'
+    description = 'Run one topic example: ./gradlew runExample -Pexample=package.ClassName'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = providers.gradleProperty('example')
+    doFirst { if (!providers.gradleProperty('example').isPresent()) throw new GradleException('Pass -Pexample=fully.qualified.Example') }
+}
+
+
+def topicExampleTasks = fileTree('topics').matching { include '**/src/main/java/Example.java' }.files.sort().collect { source ->
+    def topic = source.parentFile.parentFile.parentFile.parentFile.name
+    def taskTopic = topic.split('-').collect { it.capitalize() }.join('')
+    def packageName = (source.getText('UTF-8') =~ /(?m)^package\s+([\w.]+);/)[0][1]
+    tasks.register("run${taskTopic}Example", JavaExec) {
+        group = 'application'
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = "${packageName}.Example"
+    }
+}
+
+tasks.register('runAllExamples') {
+    group = 'application'
+    description = 'Run every topic example from this module.'
+    dependsOn topicExampleTasks
+}
